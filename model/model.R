@@ -108,3 +108,43 @@ formula = y~-1+b1.intercept+f(b1.field, model = SPDE, replicate = b1.field.repl,
 
 result=inla(formula,family="normal",data=inla.stack.data(stk.data),
             control.predictor = list(A=inla.stack.A(stk.data),compute=TRUE),control.compute = list(dic=TRUE),verbose =TRUE)
+
+
+
+##############################################################
+##############Bernoulli#######################################
+##############################################################
+x1<-wind.new$reso
+x2<-wind.new$init
+ht<-wind.new$ht
+Y<-as.numeric(wind.new$wind.bin)
+
+wind.new$rep<-c(rep(c(1:2),each=18162),rep(c(3:4),each=41071))
+
+coordrep<-rbind(coord,coord,coord)
+coordrep<-rbind(coordrep,coordrep,coordrep,coordrep)
+
+mesh1<-inla.mesh.create(loc=coord)
+
+
+SPDE = inla.spde2.matern(mesh1,B.tau=matrix(cbind(0, 1, 0, sin(pi*mesh1$loc[,1])),ncol=4),
+                         B.kappa=matrix(c(0, 0, 1, 0),nrow=1,ncol=4),
+                         theta.prior.mean=c(0, 0, 0),
+                         theta.prior.prec=c(0.1, 0.1, 0.1))
+
+A1 = inla.spde.make.A(mesh = SPDE, loc = coordrep, repl =wind.new$rep , n.repl=4,weights = x1,group=wind.new$time)
+A2 = inla.spde.make.A(mesh = SPDE, loc = coordrep, repl =wind.new$rep , n.repl=4,weights = x2,group=wind.new$time)
+
+spatial.idx.1 = inla.spde.make.index("b1.field", n.spde=SPDE$n.spde,
+                                     n.repl=4,n.group=3)
+spatial.idx.2 = inla.spde.make.index("b2.field", n.spde=SPDE$n.spde,
+                                     n.repl=4,n.group=3)
+stk.b1 = inla.stack(data = list(y = Y), A = list(A1,1), effects = list(spatial.idx.1,list(b1.intercept=rep(1,length(Y)))),tag="est1")
+stk.b2 = inla.stack(data = list(y = Y), A = list(A2,1), effects = list(spatial.idx.2,list(b2.intercept=rep(1,length(Y)))),tag="est2")
+stk.data=inla.stack(stk.b1,stk.b2)
+formula = y~-1+b1.intercept+f(b1.field, model = SPDE, replicate = b1.field.repl,control.group = list(model="ar1"))+
+  b2.intercept+f(b2.field, model = SPDE, replicate = b2.field.repl,control.group = list(model="ar1"))
+
+result=inla(formula,family="binomial",data=inla.stack.data(stk.data),
+            control.predictor = list(A=inla.stack.A(stk.data),compute=TRUE),control.compute = list(dic=TRUE),verbose =TRUE)
+
