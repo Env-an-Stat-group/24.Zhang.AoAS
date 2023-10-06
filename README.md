@@ -1,7 +1,7 @@
-# 21.Zhang.unpublished.public
+# 24.Zhang.AoAS
 
 # Data folder
-Contains sample dataset that can be test on the model code.
+Contains sample dataset to test on the model code.
 
 # Model folder
 Contains code for standard ANOVA, stationary functional ANOVA and nonstationary functional ANOVA.
